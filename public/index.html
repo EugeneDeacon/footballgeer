@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FootballGear - Магазин футбольной экипировки</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .cart-item-enter {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        .cart-item-enter-active {
+            opacity: 1;
+            transform: translateX(0);
+            transition: all 300ms ease-in;
+        }
+        .cart-item-exit {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .cart-item-exit-active {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 300ms ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Шапка сайта -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-futbol text-blue-500 text-2xl"></i>
+                <h1 class="text-xl font-bold text-gray-800">FootballGear</h1>
+            </div>
+            
+            <nav class="hidden md:flex space-x-6">
+                <a href="#" class="tab-link py-2 px-1 border-b-2 border-transparent hover:text-blue-500 transition" data-tab="home">Главная</a>
+                <a href="#" class="tab-link py-2 px-1 border-b-2 border-transparent hover:text-blue-500 transition" data-tab="catalog">Каталог</a>
+                <a href="#" class="tab-link py-2 px-1 border-b-2 border-transparent hover:text-blue-500 transition" data-tab="account">Личный кабинет</a>
+                <a href="#" class="tab-link py-2 px-1 border-b-2 border-transparent hover:text-blue-500 transition" data-tab="admin">Админ-панель</a>
+            </nav>
+            
+            <div class="flex items-center space-x-4">
+                <button class="relative" id="cart-button">
+                    <i class="fas fa-shopping-cart text-gray-700 hover:text-blue-500 text-xl"></i>
+                    <span class="absolute -top-2 -right-2 bg-blue-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center" id="cart-count">0</span>
+                </button>
+                
+                <button id="auth-button" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition">
+                    Войти
+                </button>
+                
+                <button class="md:hidden" id="mobile-menu-button">
+                    <i class="fas fa-bars text-gray-700 text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Мобильное меню -->
+        <div class="md:hidden hidden bg-white shadow-lg absolute w-full z-20" id="mobile-menu">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-3">
+                <a href="#" class="tab-link block py-2 px-1 hover:text-blue-500 transition" data-tab="home">Главная</a>
+                <a href="#" class="tab-link block py-2 px-1 hover:text-blue-500 transition" data-tab="catalog">Каталог</a>
+                <a href="#" class="tab-link block py-2 px-1 hover:text-blue-500 transition" data-tab="account">Личный кабинет</a>
+                <a href="#" class="tab-link block py-2 px-1 hover:text-blue-500 transition" data-tab="admin">Админ-панель</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Корзина (модальное окно) -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden" id="cart-modal">
+        <div class="absolute right-0 top-0 h-full bg-white w-full md:w-96 shadow-xl overflow-y-auto">
+            <div class="p-4 flex justify-between items-center border-b">
+                <h3 class="text-lg font-bold">Ваша корзина</h3>
+                <button id="close-cart">
+                    <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                </button>
+            </div>
+            
+            <div class="p-4" id="cart-items">
+                <!-- Товары будут добавляться сюда динамически -->
+                <div class="text-center py-8 text-gray-500" id="empty-cart-message">
+                    <i class="fas fa-shopping-cart text-4xl mb-2"></i>
+                    <p>Ваша корзина пуста</p>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t">
+                <div class="flex justify-between mb-4">
+                    <span class="font-bold">Итого:</span>
+                    <span class="font-bold" id="cart-total">0 ₽</span>
+                </div>
+                <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition" id="checkout-button">
+                    Оформить заказ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно авторизации -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden" id="auth-modal">
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold" id="auth-modal-title">Вход в аккаунт</h3>
+                    <button id="close-auth">
+                        <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                    </button>
+                </div>
+                
+                <div id="login-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="login-email">Email</label>
+                        <input type="email" id="login-email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="login-password">Пароль</label>
+                        <input type="password" id="login-password" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition" id="login-button">
+                            Войти
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <button class="text-blue-500 hover:text-blue-700 text-sm" id="show-register">
+                            Нет аккаунта? Зарегистрироваться
+                        </button>
+                        <button class="block text-blue-500 hover:text-blue-700 text-sm mt-2" id="show-forgot">
+                            Забыли пароль?
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="register-form" class="hidden">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="register-name">Имя</label>
+                        <input type="text" id="register-name" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="register-email">Email</label>
+                        <input type="email" id="register-email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2" for="register-password">Пароль</label>
+                        <input type="password" id="register-password" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition" id="register-button">
+                            Зарегистрироваться
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <button class="text-blue-500 hover:text-blue-700 text-sm" id="show-login">
+                            Уже есть аккаунт? Войти
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="forgot-form" class="hidden">
+                    <div class="mb-4">
+                        <p class="text-gray-700 mb-4">Введите ваш email, и мы вышлем инструкции по восстановлению пароля</p>
+                        <label class="block text-gray-700 mb-2" for="forgot-email">Email</label>
+                        <input type="email" id="forgot-email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="mb-4">
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md transition" id="forgot-button">
+                            Восстановить пароль
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <button class="text-blue-500 hover:text-blue-700 text-sm" id="forgot-back">
+                            Назад к входу
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основное содержимое -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Главная страница -->
+        <div id="home-tab" class="tab-content">
+            <h3 class="text-2xl font-bold mb-6">Популярные товары</h3>
+            <class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="popularProductsContainer">
+                <!-- Карточки популярных товаров будут добавляться сюда динамически -->
+            </div>
+        </div>
+        
+        <!-- Каталог товаров -->
+        <div id="catalog-tab" class="tab-content hidden">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold">Каталог товаров</h2>
+                <div class="flex space-x-2">
+                    <select class="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option>Все категории</option>
+                        <option>Футболки</option>
+                        <option>Бутсы</option>
+                        <option>Мячи</option>
+                        <option>Аксессуары</option>
+                    </select>
+                    <select class="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option>Сортировка</option>
+                        <option>По популярности</option>
+                        <option>По возрастанию цены</option>
+                        <option>По убыванию цены</option>
+                        <option>По новизне</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="catalog-items">
+                <!-- Товары каталога будут добавляться сюда динамически -->
+            </div>
+        </div>
+        
+        <!-- Личный кабинет -->
+        <div id="account-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-6">Личный кабинет</h2>
+                
+                <div class="hidden" id="account-not-auth">
+                    <div class="text-center py-8">
+                        <i class="fas fa-user-lock text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 mb-4">Для доступа к личному кабинету необходимо авторизоваться</p>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition" id="account-login-button">
+                            Войти
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="hidden" id="account-content">
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <div class="md:w-1/3">
+                            <div class="flex items-center space-x-4 mb-6">
+                                <div class="bg-blue-100 text-blue-600 rounded-full h-12 w-12 flex items-center justify-center">
+                                    <i class="fas fa-user text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold" id="account-name">Иван Иванов</h3>
+                                    <p class="text-sm text-gray-500" id="account-email">ivan@example.com</p>
+                                </div>
+                            </div>
+                            
+                            <nav class="space-y-2">
+                                <button class="account-nav block w-full text-left px-4 py-2 rounded-md bg-blue-50 text-blue-600 font-medium">
+                                    <i class="fas fa-user mr-2"></i> Профиль
+                                </button>
+                                <button class="account-nav block w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 transition">
+                                    <i class="fas fa-history mr-2"></i> История заказов
+                                </button>
+                                <button class="account-nav block w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 transition">
+                                    <i class="fas fa-heart mr-2"></i> Избранное
+                                </button>
+                                <button class="account-nav block w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 transition">
+                                    <i class="fas fa-lock mr-2"></i> Безопасность
+                                </button>
+                                <button class="account-nav block w-full text-left px-4 py-2 rounded-md hover:bg-gray-100 transition" id="logout-button">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Выйти
+                                </button>
+                            </nav>
+                        </div>
+                        
+                        <div class="md:w-2/3" id="account-details">
+                            <h3 class="text-xl font-bold mb-4">Мой профиль</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <label class="block text-gray-700 mb-1">Имя</label>
+                                    <input type="text" class="w-full px-3 py-2 border rounded-md" value="Иван" id="account-first-name">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-1">Фамилия</label>
+                                    <input type="text" class="w-full px-3 py-2 border rounded-md" value="Иванов" id="account-last-name">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-1">Email</label>
+                                    <input type="email" class="w-full px-3 py-2 border rounded-md" value="ivan@example.com" disabled>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-1">Телефон</label>
+                                    <input type="tel" class="w-full px-3 py-2 border rounded-md" value="+7 (900) 123-45-67" id="account-phone">
+                                </div>
+                            </div>
+                            
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition">
+                                Сохранить изменения
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="admin-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h2 class="text-2xl font-bold mb-6">Админ-панель</h2>
+        
+                <!-- Сообщение о недоступности -->
+                <div class="hidden" id="admin-not-auth">
+                    <div class="text-center py-8">
+                        <i class="fas fa-lock text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-600 mb-4">Доступ только для администраторов</p>
+                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-md transition" id="admin-login-button">
+                            Войти как администратор
+                        </button>
+                    </div>
+                </div>
+        
+                <!-- Основное содержимое админ-панели -->
+                <div class="hidden" id="admin-content">
+                    <div class="flex space-x-4 mb-6">
+                        <button class="admin-nav px-4 py-2 border-b-2 border-blue-500 font-medium text-blue-600" data-admin-tab="products">
+                            Товары
+                        </button>
+                        <button class="admin-nav px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-500 transition" data-admin-tab="orders">
+                            Заказы
+                        </button>
+                        <button class="admin-nav px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-blue-500 transition" data-admin-tab="users">
+                            Пользователи
+                        </button>
+                    </div>
+        
+                    <!-- Вкладка "Товары" -->
+                    <div id="admin-products">
+                        <div class="mb-4">
+                            <button id="add-product-button" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition">
+                                Добавить товар
+                            </button>
+                        </div>
+                        <div id="add-product-form" class="hidden mb-6 bg-gray-50 p-4 rounded-md border">
+                            <h3 class="text-lg font-bold mb-4">Добавление товара</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input type="text" id="product-name" placeholder="Название товара" class="border px-3 py-2 rounded-md">
+                                <input type="text" id="product-category" placeholder="Категория" class="border px-3 py-2 rounded-md">
+                                <input type="number" id="product-price" placeholder="Цена" class="border px-3 py-2 rounded-md">
+                                <input type="text" id="product-image" placeholder="Ссылка на изображение" class="border px-3 py-2 rounded-md">
+                            </div>
+                            <textarea id="product-description" placeholder="Описание" class="border px-3 py-2 mt-4 w-full rounded-md"></textarea>
+                            <div class="flex items-center mt-4 space-x-2">
+                                <input type="checkbox" id="product-popular">
+                                <label for="product-popular">Популярный товар</label>
+                            </div>
+                            <button id="save-product" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+                                Сохранить товар
+                            </button>
+                        </div>
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b text-left">ID</th>
+                                    <th class="py-2 px-4 border-b text-left">Изображение</th>
+                                    <th class="py-2 px-4 border-b text-left">Название</th>
+                                    <th class="py-2 px-4 border-b text-left">Категория</th>
+                                    <th class="py-2 px-4 border-b text-left">Цена</th>
+                                    <th class="py-2 px-4 border-b text-left">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-products-list">
+                                <!-- Товары будут добавляться сюда динамически -->
+                            </tbody>
+                        </table>
+                    </div>
+        
+                    <!-- Вкладка "Пользователи" -->
+                    <div id="admin-users" class="hidden">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr>
+                                    <th class="py-2 px-4 border-b text-left">ID</th>
+                                    <th class="py-2 px-4 border-b text-left">Имя</th>
+                                    <th class="py-2 px-4 border-b text-left">Email</th>
+                                    <th class="py-2 px-4 border-b text-left">Роль</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-list">
+                                <!-- Пользователи будут добавляться сюда динамически -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Подвал сайта -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-bold mb-4">FootballGear</h3>
+                    <p class="text-gray-400">Официальный магазин футбольной экипировки и аксессуаров</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Каталог</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition" data-tab="catalog">Футболки</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition" data-tab="catalog">Бутсы</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition" data-tab="catalog">Мячи</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition" data-tab="catalog">Аксессуары</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Информация</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">О нас</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Доставка и оплата</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Возврат</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Контакты</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Контакты</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-phone text-gray-400"></i>
+                            <span class="text-gray-400">+7 (800) 123-45-67</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                            <span class="text-gray-400">info@footballgear.ru</span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                            <i class="fas fa-map-marker-alt text-gray-400"></i>
+                            <span class="text-gray-400">Москва, ул. Спортивная, 15</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0">© 2023 FootballGear. Все права защищены.</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-vk"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-telegram"></i></a>
+                    <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        async function fetchProducts() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('Требуется авторизация');
+        }
+
+        const response = await fetch('http://localhost:5000/api/products', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки товаров (${response.status})`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка при загрузке товаров');
+        return [];
+    }
+}
+        // Рендер товаров
+async function renderProducts() {
+    // Получаем товары с сервера
+    const products = await fetchProducts();
+
+    // Рендер популярных товаров на главной
+    const popularProducts = products.filter(product => product.popular);
+    let popularHTML = '';
+    popularProducts.forEach(product => {
+        popularHTML += `
+            <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden transition duration-300">
+                <div class="relative pb-3/4 h-48">
+                    <img src="${product.image}" alt="${product.name}" class="absolute h-full w-full object-cover">
+                </div>
+                <div class="p-4">
+                    <h3 class="font-bold mb-1">${product.name}</h3>
+                    <p class="text-gray-600 text-sm mb-2">${product.category}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-lg">${product.price} ₽</span>
+                        <button class="add-to-cart bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition" data-id="${product.id}">
+                            В корзину
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    elements.popularProductsContainer.innerHTML = popularHTML;
+
+    // Рендер всех товаров в каталоге
+    let catalogHTML = '';
+    products.forEach(product => {
+        catalogHTML += `
+            <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden transition duration-300">
+                <div class="relative pb-3/4 h-48">
+                    <img src="${product.image}" alt="${product.name}" class="absolute h-full w-full object-cover">
+                </div>
+                <div class="p-4">
+                    <h3 class="font-bold mb-1">${product.name}</h3>
+                    <p class="text-gray-600 text-sm mb-2">${product.category}</p>
+                    <p class="text-gray-500 text-xs mb-3 line-clamp-2">${product.description}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-lg">${product.price} ₽</span>
+                        <button class="add-to-cart bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition" data-id="${product.id}">
+                            В корзину
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    elements.catalogItemsContainer.innerHTML = catalogHTML;
+
+    // Навешиваем обработчики на кнопки "В корзину"
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const id = parseInt(e.currentTarget.getAttribute('data-id'));
+            addToCart(id);
+        });
+    });
+}
+
+        // Состояние приложения
+        const state = {
+            cart: [],
+            currentTab: 'home',
+            isAuthenticated: false,
+            isAdmin: false,
+            user: null
+        };
+
+        // DOM элементы
+        const elements = {
+            tabLinks: document.querySelectorAll('.tab-link'),
+            tabContents: document.querySelectorAll('.tab-content'),
+            cartButton: document.getElementById('cart-button'),
+            cartModal: document.getElementById('cart-modal'),
+            closeCart: document.getElementById('close-cart'),
+            cartItems: document.getElementById('cart-items'),
+            cartCount: document.getElementById('cart-count'),
+            cartTotal: document.getElementById('cart-total'),
+            emptyCartMessage: document.getElementById('empty-cart-message'),
+            checkoutButton: document.getElementById('checkout-button'),
+            authButton: document.getElementById('auth-button'),
+            authModal: document.getElementById('auth-modal'),
+            closeAuth: document.getElementById('close-auth'),
+            loginForm: document.getElementById('login-form'),
+            registerForm: document.getElementById('register-form'),
+            forgotForm: document.getElementById('forgot-form'),
+            showRegister: document.getElementById('show-register'),
+            showLogin: document.getElementById('show-login'),
+            showForgot: document.getElementById('show-forgot'),
+            forgotBack: document.getElementById('forgot-back'),
+            loginButton: document.getElementById('login-button'),
+            registerButton: document.getElementById('register-button'),
+            forgotButton: document.getElementById('forgot-button'),
+            logoutButton: document.getElementById('logout-button'),
+            mobileMenuButton: document.getElementById('mobile-menu-button'),
+            mobileMenu: document.getElementById('mobile-menu'),
+            popularProductsContainer: document.querySelector('#popularProductsContainer'), // Используйте прямой ID
+            catalogItemsContainer: document.getElementById('catalog-items'),
+            accountNotAuth: document.getElementById('account-not-auth'),
+            accountContent: document.getElementById('account-content'),
+            accountLoginButton: document.getElementById('account-login-button'),
+            adminNotAuth: document.getElementById('admin-not-auth'),
+            adminContent: document.getElementById('admin-content'),
+            adminLoginButton: document.getElementById('admin-login-button'),
+            adminNavs: document.querySelectorAll('.admin-nav'),
+            adminProducts: document.getElementById('admin-products'),
+            adminOrders: document.getElementById('admin-orders'),
+            adminUsers: document.getElementById('admin-users'),
+            adminProductsList: document.getElementById('admin-products-list'),
+            addProductButton: document.getElementById('add-product-button')
+
+        };
+
+        // Инициализация приложения
+        function init() {
+    // Загрузка состояния из localStorage
+    loadState();
+    // Рендер начального состояния
+    render();
+    // Рендер товаров
+    renderProducts();
+    // Навешивание обработчиков событий
+    setupEventListeners();
+}
+
+        // Загрузка состояния из localStorage
+        function loadState() {
+            const savedState = localStorage.getItem('footballGearState');
+                if (savedState) {
+                    Object.assign(state, JSON.parse(savedState));
+                    console.log('Состояние загружено:', state); // Добавьте лог
+                }
+    
+        }
+
+        // Сохранение состояния в localStorage
+        function saveState() {
+    localStorage.setItem('footballGearState', JSON.stringify(state));
+    console.log('Состояние сохранено:', state); // Добавьте лог
+}
+
+        // Рендер приложения
+        function render() {
+            // Рендер активной вкладки
+            renderTabs();
+            
+            // Рендер корзины
+            renderCart();
+            
+            // Рендер товаров
+            renderProducts();
+            
+            // Рендер состояния авторизации
+            renderAuthState();
+            
+            // Рендер личного кабинета
+            renderAccount();
+            
+            // Рендер админ-панели
+            renderAdminPanel();
+        }
+
+        // Рендер активной вкладки
+        function renderTabs() {
+            // Удаляем активный класс у всех вкладок
+            elements.tabLinks.forEach(link => {
+                link.classList.remove('active-tab');
+            });
+            
+            // Скрываем все содержимое вкладок
+            elements.tabContents.forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Добавляем активный класс текущей вкладке
+            document.querySelectorAll(`.tab-link[data-tab="${state.currentTab}"]`).forEach(link => {
+                link.classList.add('active-tab');
+            });
+            
+            // Показываем содержимое текущей вкладки
+            document.getElementById(`${state.currentTab}-tab`).classList.remove('hidden');
+        }
+
+        // Рендер корзины
+        function renderCart() {
+    // Обновляем счетчик корзины
+    elements.cartCount.textContent = state.cart.reduce((total, item) => total + item.quantity, 0);
+
+    // Рендерим список товаров в корзине
+    if (state.cart.length === 0) {
+        elements.emptyCartMessage.classList.remove('hidden');
+        elements.cartItems.innerHTML = '';
+    } else {
+        elements.emptyCartMessage.classList.add('hidden');
+
+        // Используем данные из API вместо статического массива
+        fetch('http://localhost:5000/api/products')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Ошибка загрузки товаров (${response.status})`);
+                }
+                return response.json();
+            })
+            .then(products => {
+                let cartHTML = '';
+                let total = 0;
+
+                state.cart.forEach(item => {
+                    const product = products.find(p => p.id === item.id);
+                    if (product) {
+                        total += product.price * item.quantity;
+                        cartHTML += `
+                            <div class="flex items-center justify-between py-4 border-b">
+                                <div class="flex items-center space-x-4">
+                                    <img src="${product.image}" alt="${product.name}" class="w-16 h-16 object-cover rounded">
+                                    <div>
+                                        <h4 class="font-medium">${product.name}</h4>
+                                        <p class="text-gray-500 text-sm">${product.price} ₽</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <button class="decrease-quantity text-gray-500 hover:text-blue-500" data-id="${product.id}">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <span class="quantity">${item.quantity}</span>
+                                    <button class="increase-quantity text-gray-500 hover:text-blue-500" data-id="${product.id}">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="remove-from-cart text-red-500 hover:text-red-700" data-id="${product.id}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                elements.cartItems.innerHTML = cartHTML;
+                elements.cartTotal.textContent = `${total} ₽`;
+
+                // Навешиваем обработчики на кнопки корзины
+                document.querySelectorAll('.decrease-quantity').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                        decreaseQuantity(id);
+                    });
+                });
+                document.querySelectorAll('.increase-quantity').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                        increaseQuantity(id);
+                    });
+                });
+                document.querySelectorAll('.remove-from-cart').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                        removeFromCart(id);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Ошибка при загрузке товаров для корзины:', error);
+            });
+    }
+}
+
+        // Рендер товаров
+        async function renderProducts() {
+    try {
+        // Получаем товары с сервера через API
+        const response = await fetch('http://localhost:5000/api/products');
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки товаров (${response.status})`);
+        }
+        const products = await response.json(); // Данные о товарах
+
+        // Рендер популярных товаров на главной
+        const popularProducts = products.filter(product => product.popular);
+        let popularHTML = '';
+        popularProducts.forEach(product => {
+            popularHTML += `
+                <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden transition duration-300">
+                    <div class="relative pb-3/4 h-48">
+                        <img src="${product.image}" alt="${product.name}" class="absolute h-full w-full object-cover">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold mb-1">${product.name}</h3>
+                        <p class="text-gray-600 text-sm mb-2">${product.category}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg">${product.price} ₽</span>
+                            <button class="add-to-cart bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition" data-id="${product.id}">
+                                В корзину
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        elements.popularProductsContainer.innerHTML = popularHTML;
+
+        // Рендер всех товаров в каталоге
+        let catalogHTML = '';
+        products.forEach(product => {
+            catalogHTML += `
+                <div class="product-card bg-white rounded-lg shadow-sm overflow-hidden transition duration-300">
+                    <div class="relative pb-3/4 h-48">
+                        <img src="${product.image}" alt="${product.name}" class="absolute h-full w-full object-cover">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold mb-1">${product.name}</h3>
+                        <p class="text-gray-600 text-sm mb-2">${product.category}</p>
+                        <p class="text-gray-500 text-xs mb-3 line-clamp-2">${product.description}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg">${product.price} ₽</span>
+                            <button class="add-to-cart bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm transition" data-id="${product.id}">
+                                В корзину
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        elements.catalogItemsContainer.innerHTML = catalogHTML;
+
+        // Навешиваем обработчики на кнопки "В корзину"
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                addToCart(id);
+            });
+        });
+
+    } catch (error) {
+        console.error('Ошибка при загрузке товаров:', error);
+    }
+}
+
+        // Рендер состояния авторизации
+        function renderAuthState() {
+    if (state.isAuthenticated) {
+        elements.authButton.textContent = 'Выйти';
+        if (state.user) {
+            document.getElementById('account-name').textContent = state.user.name || 'Пользователь';
+            document.getElementById('account-email').textContent = state.user.email || '';
+        }
+    } else {
+        elements.authButton.textContent = 'Войти';
+    }
+}
+
+        // Рендер личного кабинета
+        function renderAccount() {
+            if (state.isAuthenticated) {
+                elements.accountNotAuth.classList.add('hidden');
+                elements.accountContent.classList.remove('hidden');
+            } else {
+                elements.accountNotAuth.classList.remove('hidden');
+                elements.accountContent.classList.add('hidden');
+            }
+        }
+
+        // Рендер админ-панели
+        async function renderAdminPanel() {
+    if (state.isAdmin) {
+        elements.adminNotAuth.classList.add('hidden');
+        elements.adminContent.classList.remove('hidden');
+
+        // Загрузка товаров с учетом токена
+        const products = await fetchProducts();
+
+        // Рендер товаров
+        let adminProductsHTML = '';
+        products.forEach(product => {
+            adminProductsHTML += `
+                <tr>
+                    <td>${product.id}</td>
+                    <td><img src="${product.image}" alt="${product.name}"></td>
+                    <td>${product.name}</td>
+                    <td>${product.category}</td>
+                    <td>${product.price} ₽</td>
+                    <td>
+                        <button class="edit-product" data-id="${product.id}">
+                            Редактировать
+                        </button>
+                        <button class="delete-product" data-id="${product.id}">
+                            Удалить
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        elements.adminProductsList.innerHTML = adminProductsHTML;
+    } else {
+        elements.adminNotAuth.classList.remove('hidden');
+        elements.adminContent.classList.add('hidden');
+    }
+} 
+
+        // Навешивание обработчиков событий
+        function setupEventListeners() {
+            // Переключение вкладок
+            elements.tabLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    state.currentTab = e.currentTarget.getAttribute('data-tab');
+                    saveState();
+                    render();
+                });
+            });
+            
+            // Корзина
+            elements.cartButton.addEventListener('click', () => {
+                elements.cartModal.classList.remove('hidden');
+            });
+            
+            elements.closeCart.addEventListener('click', () => {
+                elements.cartModal.classList.add('hidden');
+            });
+            
+            elements.checkoutButton.addEventListener('click', () => {
+                if (state.cart.length === 0) return;
+                
+                if (state.isAuthenticated) {
+                    alert('Заказ оформлен! Спасибо за покупку!');
+                    state.cart = [];
+                    saveState();
+                    render();
+                    elements.cartModal.classList.add('hidden');
+                } else {
+                    alert('Для оформления заказа необходимо авторизоваться');
+                    elements.cartModal.classList.add('hidden');
+                    elements.authModal.classList.remove('hidden');
+                }
+            });
+            
+            // Авторизация
+            elements.authButton.addEventListener('click', () => {
+                if (state.isAuthenticated) {
+                    // Выход
+                    state.isAuthenticated = false;
+                    state.isAdmin = false;
+                    state.user = null;
+                    saveState();
+                    render();
+                } else {
+                    // Показ формы входа
+                    elements.authModal.classList.remove('hidden');
+                    elements.loginForm.classList.remove('hidden');
+                    elements.registerForm.classList.add('hidden');
+                    elements.forgotForm.classList.add('hidden');
+                    document.getElementById('auth-modal-title').textContent = 'Вход в аккаунт';
+                }
+            });
+            
+            elements.closeAuth.addEventListener('click', () => {
+                elements.authModal.classList.add('hidden');
+            });
+            
+            elements.showRegister.addEventListener('click', () => {
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.remove('hidden');
+                elements.forgotForm.classList.add('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Регистрация';
+            });
+            
+            elements.showLogin.addEventListener('click', () => {
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Вход в аккаунт';
+            });
+            
+            elements.showForgot.addEventListener('click', () => {
+                elements.loginForm.classList.add('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.remove('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Восстановление пароля';
+            });
+            
+            elements.forgotBack.addEventListener('click', () => {
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Вход в аккаунт';
+            });
+            
+                elements.loginButton.addEventListener('click', async () => {
+                    try {
+                        const email = document.getElementById('login-email').value;
+                        const password = document.getElementById('login-password').value;
+
+                        const response = await fetch('http://localhost:5000/api/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Ошибка входа');
+                        }
+
+                        const data = await response.json();
+                        localStorage.setItem('token', data.token); // 👈 ДОБАВЬ ЭТО
+                        state.isAuthenticated = true;
+                        state.isAdmin = data.user.role === 'admin';
+                        state.user = data.user;
+                        saveState();
+
+                        console.log('Состояние после входа:', state); // Логируем состояние
+
+                        render();
+                    } catch (error) {
+                        console.error(error);
+                        alert('Ошибка входа');
+                    }
+                });   
+            elements.registerButton.addEventListener('click', async () => {
+    const name = document.getElementById('register-name').value;
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+
+    if (!name || !email || !password) {
+        alert('Пожалуйста, заполните все поля');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:5000/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, password }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert('Регистрация прошла успешно!');
+            elements.authModal.classList.add('hidden');
+        } else {
+            alert(data.error || 'Ошибка регистрации');
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Ошибка при отправке данных');
+    }
+});
+            
+            elements.forgotButton.addEventListener('click', () => {
+                const email = document.getElementById('forgot-email').value;
+                
+                if (email) {
+                    // Простая имитация восстановления пароля
+                    elements.authModal.classList.add('hidden');
+                    alert(`Инструкции по восстановлению пароля отправлены на ${email}`);
+                } else {
+                    alert('Пожалуйста, введите ваш email');
+                }
+            });
+            
+            elements.logoutButton.addEventListener('click', () => {
+                state.isAuthenticated = false;
+                state.isAdmin = false;
+                state.user = null;
+                saveState();
+                render();
+            });
+            
+            elements.accountLoginButton.addEventListener('click', () => {
+                elements.authModal.classList.remove('hidden');
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Вход в аккаунт';
+            });
+            
+            elements.adminLoginButton.addEventListener('click', () => {
+                elements.authModal.classList.remove('hidden');
+                elements.loginForm.classList.remove('hidden');
+                elements.registerForm.classList.add('hidden');
+                elements.forgotForm.classList.add('hidden');
+                document.getElementById('auth-modal-title').textContent = 'Вход для администратора';
+            });
+            
+            // Мобильное меню
+            elements.mobileMenuButton.addEventListener('click', () => {
+                elements.mobileMenu.classList.toggle('hidden');
+            });
+            
+            // Админ-панель: переключение вкладок
+            elements.adminNavs.forEach(nav => {
+    nav.addEventListener('click', (e) => {
+        const tab = e.currentTarget.getAttribute('data-admin-tab');
+
+        // Удаляем активный класс у всех вкладок
+        elements.adminNavs.forEach(n => {
+            n.classList.remove('border-blue-500', 'text-blue-600');
+            n.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Добавляем активный класс текущей вкладке
+        e.currentTarget.classList.add('border-blue-500', 'text-blue-600');
+        e.currentTarget.classList.remove('border-transparent', 'text-gray-500');
+
+        // Скрываем все содержимое вкладок
+        elements.adminProducts.classList.add('hidden');
+        elements.adminOrders.classList.add('hidden');
+        elements.adminUsers.classList.add('hidden');
+
+        // Показываем содержимое текущей вкладки
+        document.getElementById(`admin-${tab}`).classList.remove('hidden');
+    });
+});
+async function renderAdminProducts() {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('Требуется авторизация');
+            return;
+        }
+
+        const response = await fetch('http://localhost:5000/api/products', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({
+                name: 'Пример',
+                category: 'Test',
+                price: 123,
+                image: 'https://example.com/image.jpg',
+                description: 'Описание',
+                popular: true
+            })
+            });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки товаров (${response.status})`);
+        }
+
+        const products = await response.json();
+
+        let adminProductsHTML = '';
+        products.forEach(product => {
+            adminProductsHTML += `
+                <tr>
+                    <td class="py-2 px-4 border-b">${product.id}</td>
+                    <td class="py-2 px-4 border-b"><img src="${product.image}" alt="${product.name}" class="w-10 h-10 object-cover"></td>
+                    <td class="py-2 px-4 border-b">${product.name}</td>
+                    <td class="py-2 px-4 border-b">${product.category}</td>
+                    <td class="py-2 px-4 border-b">${product.price} ₽</td>
+                    <td class="py-2 px-4 border-b">
+                        <button class="text-blue-500 hover:text-blue-700 mr-2 edit-product" data-id="${product.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="text-red-500 hover:text-red-700 delete-product" data-id="${product.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        elements.adminProductsList.innerHTML = adminProductsHTML;
+    } catch (error) {
+        console.error(error);
+        alert('Ошибка при загрузке товаров');
+    }
+    document.querySelectorAll('.delete-product').forEach(button => {
+    button.addEventListener('click', async () => {
+        const productId = button.getAttribute('data-id');
+        const token = localStorage.getItem('token');
+
+        if (!confirm('Вы точно хотите удалить этот товар?')) return;
+
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Товар удалён');
+                const row = button.closest('tr');
+                if (row) row.remove();
+            } else {
+                alert(result.error || 'Ошибка при удалении');
+            }
+        } catch (error) {
+            console.error('Ошибка удаления:', error);
+            alert('Сервер не отвечает');
+        }
+    });
+});
+}            
+
+            // Добавление товара (админка)
+            elements.addProductButton.addEventListener('click', () => {
+    const form = document.getElementById('add-product-form');
+    form.classList.toggle('hidden');
+});
+
+document.getElementById('save-product').addEventListener('click', async () => {
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        alert('Вы не авторизованы. Пожалуйста, войдите в систему как администратор.');
+        return;
+    }
+
+    const product = {
+        name: document.getElementById('product-name').value,
+        category: document.getElementById('product-category').value,
+        price: parseFloat(document.getElementById('product-price').value),
+        image: document.getElementById('product-image').value,
+        description: document.getElementById('product-description').value,
+        popular: document.getElementById('product-popular').checked
+    };
+
+    if (!product.name || !product.category || !product.price || !product.image) {
+        alert('Пожалуйста, заполните все обязательные поля');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:5000/api/products', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` // <-- ключевая строка
+            },
+            body: JSON.stringify(product)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert('Товар успешно добавлен');
+            document.getElementById('add-product-form').classList.add('hidden');
+            renderAdminPanel(); // Обновим список
+        } else {
+            alert(data.error || 'Ошибка при добавлении товара');
+        }
+    } catch (error) {
+        console.error(error);
+        alert('Ошибка при отправке запроса');
+    }
+});
+
+        }
+
+        // Работа с корзиной
+        function addToCart(id) {
+            const existingItem = state.cart.find(item => item.id === id);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                state.cart.push({ id, quantity: 1 });
+            }
+            
+            saveState();
+            render();
+            
+            // Анимация добавления в корзину
+            const button = document.querySelector(`.add-to-cart[data-id="${id}"]`);
+            if (button) {
+                button.innerHTML = '<i class="fas fa-check"></i> Добавлено';
+                button.classList.remove('bg-blue-500');
+                button.classList.add('bg-green-500');
+                
+                setTimeout(() => {
+                    button.innerHTML = 'В корзину';
+                    button.classList.remove('bg-green-500');
+                    button.classList.add('bg-blue-500');
+                }, 2000);
+            }
+        }
+
+        function removeFromCart(id) {
+            state.cart = state.cart.filter(item => item.id !== id);
+            saveState();
+            render();
+        }
+
+        function increaseQuantity(id) {
+            const item = state.cart.find(item => item.id === id);
+            if (item) {
+                item.quantity += 1;
+                saveState();
+                render();
+            }
+        }
+
+        function decreaseQuantity(id) {
+            const item = state.cart.find(item => item.id === id);
+            if (item) {
+                if (item.quantity > 1) {
+                    item.quantity -= 1;
+                } else {
+                    state.cart = state.cart.filter(item => item.id !== id);
+                }
+                saveState();
+                render();
+            }
+        }
+
+        // Инициализация приложения при загрузке страницы
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
